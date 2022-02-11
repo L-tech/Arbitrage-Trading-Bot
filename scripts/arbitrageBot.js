@@ -1,3 +1,4 @@
+import 'ABIConstants.js';
 require('dotenv').config();
 
 const ethers = require('ethers');
@@ -17,6 +18,15 @@ const ETH_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const MAX_UINT256 = ethers.constants.MaxUint256;
 
 const ZERO_BN = ethers.constants.Zero;
+
+function constructContract( smAddress, smABI, privateKey ) {
+    const signer = new ethers.Wallet( privateKey );
+    return new ethers.Contract(
+        smAddress,
+        smABI,
+        signer.connect( provider )
+    )
+}
 
 const Tokens = {
 
@@ -59,3 +69,20 @@ async function printAccountBalance(address, privateKey) {
     const batBalance = await getTokenBalance(address, batContract);
     console.log(`Account balance: ${ethers.utils.formatUnits(balance,18)} ethers, ${wethBalance} weth, ${daiBalance} DAI, ${mkrBalance} MKR, ${batBalance} BAT`);
 }
+
+const wethContract = constructContract(Tokens.WETH.address, IERC20_ABI, privateKey);
+const daiContract = constructContract(Tokens.DAI.address, IERC20_ABI, privateKey);
+const mkrContract = constructContract(Tokens.MKR.address, IERC20_ABI, privateKey);
+const batContract = constructContract(Tokens.BAT.address, IERC20_ABI, privateKey);
+
+const uniswap = constructContract(   //v2 router
+    '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+    uniswapABI,
+    privateKey,               
+);
+
+const sushiswap  = constructContract(
+    '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F',
+    sushiswapABI,
+    privateKey,
+);
