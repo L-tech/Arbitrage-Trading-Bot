@@ -11,7 +11,7 @@ let isInitialTxDone = false
 
 const providerURL = 'http://localhost:8545'; 
 
-const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545/");
+const provider = new ethers.providers.JsonRpcProvider(providerURL);
 
 const testAccountAddress = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 
