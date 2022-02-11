@@ -5,6 +5,10 @@ const ethers = require('ethers');
 const BigNumber = ethers.BigNumber;
 const { Fetcher, Token, WETH, ChainId, TradeType, Percent, Route, Trade, TokenAmount,} = require( '@uniswap/sdk' );
 
+let isMonitoringPrice = false
+let isInitialTxDone = false
+
+
 const providerURL = 'http://localhost:8545'; 
 
 const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545/");
@@ -180,7 +184,7 @@ async function searchProfitableArbitrage(args) {
 
     const sushiswapRates = {
         buy: sushiRates1[1],
-        sell: sushiRates2[1]
+        sell: sushirates2[1]
     };
     const uniswapRates = {
         buy: uniRates1[1],
@@ -211,3 +215,63 @@ async function searchProfitableArbitrage(args) {
     }
 
 }
+
+
+async function swapEthToToken(ethAmount, token, userAddress, dexContract) {
+    const {
+        amountOutMin,
+        amountOutMinRaw,
+        value
+
+    } = await constructTradeParameters( Tokens.WETH, token, ethAmount );
+    console.log(`Going to swap ${ethAmount} ETH for ${token.symbol} tokens`);
+    const tx = await dexContract.swapExactETHForTokens(
+        toHex(amountOutMinRaw),
+        [ Tokens.WETH.address, token.address ],
+        userAddress,
+        getDeadlineAfter( 20 ),
+        { value }
+    );
+
+    await printTxDetails(tx);
+    await printAccountBalance(userAddress);
+
+}
+
+
+
+async function monitorPrice() {
+    if(isMonitoringPrice) {
+      return
+    }
+  
+  if (!isInitialTxDone) {
+      isInitialTxDone = true
+      // convert DAI from ETH 
+      const twoEther = BigNumber.from("2000000000000000000");
+      console.log(ethers.utils.formatUnits(twoEther));
+      await printAccountBalance(testAccountAddress);
+      await swapEthToToken(twoEther, Tokens.DAI, testAccountAddress, uniswap);
+  }
+    await printAccountBalance(testAccountAddress);
+    console.log("Checking prices for possible arbitrage opportunities...")
+    isMonitoringPrice = true
+    try {
+      await searchProfitableArbitrage({
+        inputToken: Tokens.DAI,
+        outputToken: Tokens.MKR,
+        inputTokenContract: daiContract, 
+        outputTokenContract: mkrContract
+      });
+  
+    } catch (error) {
+      console.error(error)
+      isMonitoringPrice = false
+      return
+    }
+  
+    isMonitoringPrice = false
+  
+  }
+  
+  let priceMonitor = setInterval(async () => { await monitorPrice() }, 1000)
