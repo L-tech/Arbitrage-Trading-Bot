@@ -127,3 +127,33 @@ async function constructTradeParameters( tokenA, tokenB, tokenAmount ) {
 
 }
   
+async function swap(tokenA, tokenB, userAddress, tokenAContract, dexContract) {
+    const inputTokenAmount = await getTokenBalanceInBN(userAddress, tokenAContract);
+    const {
+        amountOutMin,
+        amountOutMinRaw,
+        value
+    } = await constructTradeParameters( tokenA , tokenB , inputTokenAmount);
+
+    console.log(`Going to swap ${ethers.utils.formatUnits(inputTokenAmount, 18)} ${tokenA.symbol} tokens for ${amountOutMinRaw} ${tokenB.symbol}`);
+
+    await checkAndApproveTokenForTrade(tokenAContract, wallet.address, inputTokenAmount, dexContract.address);
+    console.log("Swapping..");
+    const tx = await dexContract.swapExactTokensForTokens(
+        inputTokenAmount,
+        toHex(amountOutMinRaw),
+        [ tokenA.address, tokenB.address],
+        userAddress,
+        getDeadlineAfter( 20 ),
+        { gasLimit: 300000}
+        );
+    await printTxDetails(tx);
+    await printAccountBalance(userAddress);
+
+}
+
+async function printTxDetails(tx) {
+    console.log(`Transaction hash: ${tx.hash}`);
+    const receipt = await tx.wait();
+    console.log(`Transaction was mined in block ${receipt.blockNumber}`);
+}
